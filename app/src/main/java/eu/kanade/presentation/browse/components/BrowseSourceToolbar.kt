@@ -41,6 +41,7 @@ fun BrowseSourceToolbar(
     selectedCount: Int = 0,
     onStartSelection: () -> Unit = {},
     onCancelSelection: () -> Unit = {},
+    onSelectAll: () -> Unit = {},
 ) {
     // Avoid capturing unstable source in actions lambda
     val title = source?.name
@@ -69,6 +70,14 @@ fun BrowseSourceToolbar(
                             onClick = if (isSelectionMode) onCancelSelection else onStartSelection,
                         ),
                     )
+                    if (isSelectionMode) {
+                        add(
+                            AppBar.OverflowAction(
+                                title = "Seleccionar todos",
+                                onClick = onSelectAll,
+                            ),
+                        )
+                    }
                     add(
                         AppBar.Action(
                             title = stringResource(MR.strings.action_display_mode),
