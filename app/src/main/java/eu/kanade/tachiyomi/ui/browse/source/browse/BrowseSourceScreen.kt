@@ -210,6 +210,15 @@ data class BrowseSourceScreen(
                                 },
                             )
                         }
+                        if (state.isSelectionMode && state.selectedManga.isNotEmpty()) {
+                            FilterChip(
+                                selected = false,
+                                onClick = viewModel::openSelectedMangaCategoryDialog,
+                                label = {
+                                    Text(text = "Agregar seleccionados (${state.selectedManga.size})")
+                                },
+                            )
+                        }
                     }
 
                     HorizontalDivider()
@@ -304,6 +313,16 @@ data class BrowseSourceScreen(
                     onConfirm = { include, _ ->
                         viewModel.changeMangaFavorite(dialog.manga)
                         viewModel.moveMangaToCategories(dialog.manga, include)
+                    },
+                )
+            }
+            is BrowseSourceViewModel.Dialog.ChangeSelectedMangaCategories -> {
+                ChangeCategoryDialog(
+                    initialSelection = dialog.initialSelection,
+                    onDismissRequest = onDismissRequest,
+                    onEditCategories = { navigator.push(CategoryScreen()) },
+                    onConfirm = { include, exclude ->
+                        viewModel.addSelectedMangaToLibrary(include, exclude)
                     },
                 )
             }
