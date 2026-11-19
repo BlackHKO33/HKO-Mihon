@@ -108,6 +108,7 @@ data class BrowseSourceScreen(
         val haptic = LocalHapticFeedback.current
         val uriHandler = LocalUriHandler.current
         val snackbarHostState = remember { SnackbarHostState() }
+        val mangaList = viewModel.mangaPagerFlowFlow.collectAsLazyPagingItems()
 
         val onHelpClick = { uriHandler.openUri(LocalSource.HELP_URL) }
         val onWebViewClick = f@{
@@ -147,6 +148,11 @@ data class BrowseSourceScreen(
                         selectedCount = state.selectedManga.size,
                         onStartSelection = viewModel::startSelection,
                         onCancelSelection = viewModel::cancelSelection,
+                        onSelectAll = {
+                            viewModel.selectAllLoadedManga(
+                                mangaList.itemSnapshotList.items.map { it.value },
+                            )
+                        },
                     )
 
                     Row(
@@ -228,7 +234,7 @@ data class BrowseSourceScreen(
         ) { paddingValues ->
             BrowseSourceContent(
                 source = source,
-                mangaList = viewModel.mangaPagerFlowFlow.collectAsLazyPagingItems(),
+                mangaList = mangaList,
                 columns = viewModel.getColumnsPreference(LocalConfiguration.current.orientation),
                 displayMode = viewModel.displayMode,
                 snackbarHostState = snackbarHostState,
