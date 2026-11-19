@@ -21,7 +21,9 @@ fun BrowseSourceList(
     contentPadding: PaddingValues,
     onMangaClick: (Manga) -> Unit,
     onMangaLongClick: (Manga) -> Unit,
-    isMangaSelected: (Manga) -> Boolean = { false },
+    isSelectionMode: Boolean = false,
+    selectedMangaIds: Set<Long> = emptySet(),
+    onMangaSelectionToggle: (Manga) -> Unit = {},
 ) {
     LazyColumn(
         contentPadding = contentPadding + PaddingValues(vertical = 8.dp),
@@ -36,9 +38,17 @@ fun BrowseSourceList(
             val manga by mangaList[index]?.collectAsState() ?: return@items
             BrowseSourceListItem(
                 manga = manga,
-                onClick = { onMangaClick(manga) },
-                onLongClick = { onMangaLongClick(manga) },
-                isSelected = isMangaSelected(manga),
+                isSelected = manga.id in selectedMangaIds,
+                onClick = {
+                    if (isSelectionMode) {
+                        onMangaSelectionToggle(manga)
+                    } else {
+                        onMangaClick(manga)
+                    }
+                },
+                onLongClick = {
+                    if (!isSelectionMode) onMangaLongClick(manga)
+                },
             )
         }
 
@@ -70,8 +80,8 @@ private fun BrowseSourceListItem(
         badge = {
             InLibraryBadge(enabled = manga.favorite)
         },
+        isSelected = isSelected,
         onLongClick = onLongClick,
         onClick = onClick,
-        isSelected = isSelected,
     )
 }
