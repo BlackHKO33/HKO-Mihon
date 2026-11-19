@@ -278,6 +278,85 @@ class BrowseSourceViewModel(
     }
 
     /**
+     * Opens the category dialog for all currently selected manga.
+     * Categories shared by every manga are checked; categories present on only
+     * some selected manga are marked for exclusion, matching the library dialog.
+     */
+    fun openSelectedMangaCategoryDialog() {
+        viewModelScope.launch {
+            val mangas = state.value.selectedManga.distinctBy { it.id }
+            if (mangas.isEmpty()) return@launch
+
+            val categories = getCategories()
+            val mangaCategoryIds = mangas.map { manga ->
+                getCategories.await(manga.id)
+                    .filterNot { it.isSystemCategory }
+                    .map { it.id }
+                    .toSet()
+            }
+            val common = mangaCategoryIds.reduceOrNull { first, second -> first intersect second }.orEmpty()
+            val mixed = mangaCategoryIds.flatten().toSet() - common
+
+            val initialSelection = categories.map { category ->
+                when {
+                    category.id in common -> CheckboxState.State.Checked(category)
+                    category.id in mixed -> CheckboxState.TriState.Exclude(category)
+                    else -> CheckboxState.State.None(category)
+                }
+            }
+
+            setDialog(Dialog.ChangeSelectedMangaCategories(mangas, initialSelection))
+        }
+    }
+
+    /**
+     * Adds all selected manga to the library and applies the category choices.
+     *
+     * @param addCategories category IDs to add to every selected manga.
+     * @param removeCategories category IDs to remove from every selected manga.
+     */
+    fun addSelectedMangaToLibrary(addCategories: List<Long>, removeCategories: List<Long>) {
+        val mangas = state.value.selectedManga.distinctBy { it.id }
+        if (mangas.isEmpty()) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val addIds = addCategories.filter { it != 0L }.toSet()
+            val removeIds = removeCategories.filter { it != 0L }.toSet()
+
+            mangas.forEach { manga ->
+                val currentCategoryIds = getCategories.await(manga.id)
+                    .filterNot { it.isSystemCategory }
+                    .map { it.id }
+                    .toSet()
+                val updatedCategoryIds = (currentCategoryIds - removeIds) + addIds
+
+                if (!manga.favorite) {
+                    setMangaDefaultChapterFlags.await(manga)
+                    addTracks.bindEnhancedTrackers(manga, sourceManager.getOrStub(manga.source))
+                    updateManga.await(
+                        MangaUpdate(manga.id) {
+                            favoriteAt = Clock.System.now()
+                        },
+                    )
+                }
+
+                setMangaCategories.await(
+                    mangaId = manga.id,
+                    categoryIds = updatedCategoryIds.toList(),
+                )
+            }
+
+            state.update {
+                it.copy(
+                    isSelectionMode = false,
+                    selectedManga = emptyList(),
+                    dialog = null,
+                )
+            }
+        }
+    }
+
+    /**
      * Adds or removes a manga from the library.
      *
      * @param manga the manga to update.
@@ -399,6 +478,10 @@ class BrowseSourceViewModel(
         data class ChangeMangaCategory(
             val manga: Manga,
             val initialSelection: List<CheckboxState.State<Category>>,
+        ) : Dialog
+        data class ChangeSelectedMangaCategories(
+            val mangas: List<Manga>,
+            val initialSelection: List<CheckboxState<Category>>,
         ) : Dialog
         data class Migrate(val target: Manga, val current: Manga) : Dialog
     }
