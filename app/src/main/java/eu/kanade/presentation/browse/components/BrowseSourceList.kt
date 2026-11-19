@@ -21,6 +21,7 @@ fun BrowseSourceList(
     contentPadding: PaddingValues,
     onMangaClick: (Manga) -> Unit,
     onMangaLongClick: (Manga) -> Unit,
+    isMangaSelected: (Manga) -> Boolean = { false },
 ) {
     LazyColumn(
         contentPadding = contentPadding + PaddingValues(vertical = 8.dp),
@@ -37,6 +38,7 @@ fun BrowseSourceList(
                 manga = manga,
                 onClick = { onMangaClick(manga) },
                 onLongClick = { onMangaLongClick(manga) },
+                isSelected = isMangaSelected(manga),
             )
         }
 
@@ -53,6 +55,7 @@ private fun BrowseSourceListItem(
     manga: Manga,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = onClick,
+    isSelected: Boolean = false,
 ) {
     MangaListItem(
         title = manga.title,
@@ -69,5 +72,6 @@ private fun BrowseSourceListItem(
         },
         onLongClick = onLongClick,
         onClick = onClick,
+        isSelected = isSelected,
     )
 }
