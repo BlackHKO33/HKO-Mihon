@@ -37,6 +37,10 @@ fun BrowseSourceToolbar(
     onSettingsClick: () -> Unit,
     onSearch: (String) -> Unit,
     scrollBehavior: TopAppBarScrollBehavior? = null,
+    isSelectionMode: Boolean = false,
+    selectedCount: Int = 0,
+    onStartSelection: () -> Unit = {},
+    onCancelSelection: () -> Unit = {},
 ) {
     // Avoid capturing unstable source in actions lambda
     val title = source?.name
@@ -47,7 +51,11 @@ fun BrowseSourceToolbar(
 
     SearchToolbar(
         navigateUp = navigateUp,
-        titleContent = { AppBarTitle(title) },
+        titleContent = {
+            AppBarTitle(
+                if (isSelectionMode) "$selectedCount seleccionados" else title,
+            )
+        },
         searchQuery = searchQuery,
         onChangeSearchQuery = onSearchQueryChange,
         onSearch = onSearch,
@@ -55,6 +63,12 @@ fun BrowseSourceToolbar(
         actions = {
             AppBarActions(
                 actions = buildList {
+                    add(
+                        AppBar.OverflowAction(
+                            title = if (isSelectionMode) "Cancelar selección" else "Seleccionar",
+                            onClick = if (isSelectionMode) onCancelSelection else onStartSelection,
+                        ),
+                    )
                     add(
                         AppBar.Action(
                             title = stringResource(MR.strings.action_display_mode),
