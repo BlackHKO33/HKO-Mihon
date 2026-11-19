@@ -359,12 +359,14 @@ class BrowseSourceViewModel(
 
     @Immutable
     data class State(
-        val listing: Listing,
-        val source: Source? = null,
-        val filters: FilterList = FilterList(),
-        val toolbarQuery: String? = null,
-        val dialog: Dialog? = null,
-    ) {
-        val isUserQuery get() = listing is Listing.Search && !listing.query.isNullOrEmpty()
-    }
+    val listing: Listing,
+    val source: Source? = null,
+    val filters: FilterList = FilterList(),
+    val toolbarQuery: String? = null,
+    val dialog: Dialog? = null,
+    val isSelectionMode: Boolean = false,
+    val selectedManga: List<Manga> = emptyList(),
+) {
+    val isUserQuery get() = listing is Listing.Search && !listing.query.isNullOrEmpty()
+}
 }
