@@ -143,6 +143,10 @@ data class BrowseSourceScreen(
                         onHelpClick = onHelpClick,
                         onSettingsClick = { navigator.push(SourcePreferencesScreen(sourceId)) },
                         onSearch = viewModel::search,
+                        isSelectionMode = state.isSelectionMode,
+                        selectedCount = state.selectedManga.size,
+                        onStartSelection = viewModel::startSelection,
+                        onCancelSelection = viewModel::cancelSelection,
                     )
 
                     Row(
@@ -223,7 +227,13 @@ data class BrowseSourceScreen(
                 onWebViewClick = onWebViewClick,
                 onHelpClick = { uriHandler.openUri(Constants.URL_HELP) },
                 onLocalSourceHelpClick = onHelpClick,
-                onMangaClick = { navigator.push((MangaScreen(it.id, true))) },
+                onMangaClick = { manga ->
+                    if (state.isSelectionMode) {
+                        viewModel.toggleMangaSelection(manga)
+                    } else {
+                        navigator.push(MangaScreen(manga.id, true))
+                    }
+                },
                 onMangaLongClick = { manga ->
                     scope.launch(Dispatchers.IO) {
                         val duplicates = viewModel.getDuplicateLibraryManga(manga)
