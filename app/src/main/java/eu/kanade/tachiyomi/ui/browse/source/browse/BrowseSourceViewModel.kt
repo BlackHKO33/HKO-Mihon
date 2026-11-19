@@ -231,6 +231,52 @@ class BrowseSourceViewModel(
         }
     }
 
+    /** Starts multi-selection mode and clears any previous selection. */
+    fun startSelection() {
+        state.update {
+            it.copy(
+                isSelectionMode = true,
+                selectedManga = emptyList(),
+            )
+        }
+    }
+
+    /** Leaves multi-selection mode and clears the selected manga. */
+    fun cancelSelection() {
+        state.update {
+            it.copy(
+                isSelectionMode = false,
+                selectedManga = emptyList(),
+            )
+        }
+    }
+
+    /** Adds or removes a manga from the current selection. */
+    fun toggleMangaSelection(manga: Manga) {
+        state.update { current ->
+            val selected = current.selectedManga
+            val alreadySelected = selected.any { it.id == manga.id }
+
+            current.copy(
+                selectedManga = if (alreadySelected) {
+                    selected.filterNot { it.id == manga.id }
+                } else {
+                    selected + manga
+                },
+            )
+        }
+    }
+
+    /** Selects all manga currently loaded in the source list. */
+    fun selectAllLoadedManga(mangaList: List<Manga>) {
+        state.update {
+            it.copy(
+                isSelectionMode = true,
+                selectedManga = mangaList.distinctBy { manga -> manga.id },
+            )
+        }
+    }
+
     /**
      * Adds or removes a manga from the library.
      *
@@ -359,14 +405,14 @@ class BrowseSourceViewModel(
 
     @Immutable
     data class State(
-    val listing: Listing,
-    val source: Source? = null,
-    val filters: FilterList = FilterList(),
-    val toolbarQuery: String? = null,
-    val dialog: Dialog? = null,
-    val isSelectionMode: Boolean = false,
-    val selectedManga: List<Manga> = emptyList(),
-) {
-    val isUserQuery get() = listing is Listing.Search && !listing.query.isNullOrEmpty()
-}
+        val listing: Listing,
+        val source: Source? = null,
+        val filters: FilterList = FilterList(),
+        val toolbarQuery: String? = null,
+        val dialog: Dialog? = null,
+        val isSelectionMode: Boolean = false,
+        val selectedManga: List<Manga> = emptyList(),
+    ) {
+        val isUserQuery get() = listing is Listing.Search && !listing.query.isNullOrEmpty()
+    }
 }
