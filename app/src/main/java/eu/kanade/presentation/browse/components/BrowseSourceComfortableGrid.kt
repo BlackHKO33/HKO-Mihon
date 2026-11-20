@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
@@ -19,7 +18,9 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +48,13 @@ fun BrowseSourceComfortableGrid(
 ) {
     val gridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
+
+    val showScrollToStart by remember {
+        derivedStateOf { gridState.canScrollBackward }
+    }
+    val showScrollToEnd by remember {
+        derivedStateOf { gridState.canScrollForward }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyVerticalGrid(
@@ -93,33 +101,37 @@ fun BrowseSourceComfortableGrid(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            FloatingActionButton(
-                onClick = {
-                    scope.launch {
-                        gridState.animateScrollToItem(0)
-                    }
-                },
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.KeyboardArrowUp,
-                    contentDescription = "Ir al principio",
-                )
+            if (showScrollToStart) {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            gridState.animateScrollToItem(0)
+                        }
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowUp,
+                        contentDescription = "Ir al principio",
+                    )
+                }
             }
 
-            FloatingActionButton(
-                onClick = {
-                    scope.launch {
-                        val lastIndex = mangaList.itemCount - 1
-                        if (lastIndex >= 0) {
-                            gridState.animateScrollToItem(lastIndex)
+            if (showScrollToEnd) {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            val lastIndex = mangaList.itemCount - 1
+                            if (lastIndex >= 0) {
+                                gridState.animateScrollToItem(lastIndex)
+                            }
                         }
-                    }
-                },
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.KeyboardArrowDown,
-                    contentDescription = "Ir al final",
-                )
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = "Ir al final",
+                    )
+                }
             }
         }
     }
