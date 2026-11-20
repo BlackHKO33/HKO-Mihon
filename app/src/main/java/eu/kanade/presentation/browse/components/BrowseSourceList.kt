@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -105,10 +103,7 @@ fun BrowseSourceList(
                         }
                     },
                 ) {
-                    Text(
-                        text = "↑",
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
+                    BrowseSourceScrollIcon(pointUp = true)
                 }
             }
 
@@ -159,10 +154,7 @@ fun BrowseSourceList(
                         }
                     },
                 ) {
-                    Text(
-                        text = "↓",
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
+                    BrowseSourceScrollIcon(pointUp = false)
                 }
             }
         }
