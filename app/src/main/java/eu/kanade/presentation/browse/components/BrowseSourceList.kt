@@ -1,3 +1,4 @@
+
 package eu.kanade.presentation.browse.components
 
 import androidx.compose.foundation.layout.Arrangement
