@@ -30,7 +30,9 @@ import androidx.paging.compose.LazyPagingItems
 import eu.kanade.presentation.library.components.CommonMangaItemDefaults
 import eu.kanade.presentation.library.components.MangaComfortableGridItem
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.snapshotFlow
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.manga.model.MangaCover
 import tachiyomi.presentation.core.util.plus
@@ -120,9 +122,38 @@ fun BrowseSourceComfortableGrid(
                 FloatingActionButton(
                     onClick = {
                         scope.launch {
-                            val lastIndex = mangaList.itemCount - 1
-                            if (lastIndex >= 0) {
-                                gridState.animateScrollToItem(lastIndex)
+                            while (true) {
+                                val previousCount = mangaList.itemCount
+                                if (previousCount == 0) break
+
+                                gridState.animateScrollToItem(previousCount - 1)
+
+                                val appendState = mangaList.loadState.append
+                                if (appendState is LoadState.NotLoading && appendState.endOfPaginationReached) {
+                                    break
+                                }
+                                if (appendState is LoadState.Error) break
+
+                                val result = snapshotFlow {
+                                    mangaList.itemCount to mangaList.loadState.append
+                                }.first { (count, state) ->
+                                    count > previousCount ||
+                                        (state is LoadState.NotLoading && state.endOfPaginationReached) ||
+                                        state is LoadState.Error
+                                }
+
+                                val newAppendState = result.second
+                                if (newAppendState is LoadState.Error) break
+
+                                if (newAppendState is LoadState.NotLoading && newAppendState.endOfPaginationReached) {
+                                    val lastIndex = mangaList.itemCount - 1
+                                    if (lastIndex >= 0) {
+                                        gridState.animateScrollToItem(lastIndex)
+                                    }
+                                    break
+                                }
+
+                                if (mangaList.itemCount <= previousCount) break
                             }
                         }
                     },
