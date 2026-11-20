@@ -83,9 +83,12 @@ fun BrowseSourceList(
             }
 
             item {
-                if (mangaList.loadState.refresh is LoadState.Loading || mangaList.loadState.append is LoadState.Loading) {
-                    BrowseSourceLoadingItem()
-                }
+    if (
+        mangaList.loadState.refresh is LoadState.Loading ||
+        mangaList.loadState.append is LoadState.Loading
+    ) {
+        BrowseSourceLoadingItem()
+    }
             }
         }
 
