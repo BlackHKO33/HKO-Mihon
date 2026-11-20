@@ -1,4 +1,3 @@
-
 package eu.kanade.presentation.browse.components
 
 import androidx.compose.foundation.layout.Arrangement
@@ -12,13 +11,15 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -27,6 +28,7 @@ import androidx.paging.compose.LazyPagingItems
 import eu.kanade.presentation.library.components.CommonMangaItemDefaults
 import eu.kanade.presentation.library.components.MangaCompactGridItem
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.manga.model.MangaCover
@@ -45,6 +47,13 @@ fun BrowseSourceCompactGrid(
 ) {
     val gridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
+
+    val showScrollToStart by remember {
+        derivedStateOf { gridState.canScrollBackward }
+    }
+    val showScrollToEnd by remember {
+        derivedStateOf { gridState.canScrollForward }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyVerticalGrid(
@@ -91,33 +100,66 @@ fun BrowseSourceCompactGrid(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            FloatingActionButton(
-                onClick = {
-                    scope.launch {
-                        gridState.animateScrollToItem(0)
-                    }
-                },
-            ) {
-                Text(
-                    text = "↑",
-                    style = MaterialTheme.typography.headlineMedium,
-                )
+            if (showScrollToStart) {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            gridState.animateScrollToItem(0)
+                        }
+                    },
+                ) {
+                    Text(
+                        text = "↑",
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                }
             }
 
-            FloatingActionButton(
-                onClick = {
-                    scope.launch {
-                        val lastIndex = mangaList.itemCount - 1
-                        if (lastIndex >= 0) {
-                            gridState.animateScrollToItem(lastIndex)
+            if (showScrollToEnd) {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            while (true) {
+                                val previousCount = mangaList.itemCount
+                                if (previousCount == 0) break
+
+                                gridState.animateScrollToItem(previousCount - 1)
+
+                                val appendState = mangaList.loadState.append
+                                if (appendState is LoadState.NotLoading && appendState.endOfPaginationReached) {
+                                    break
+                                }
+                                if (appendState is LoadState.Error) break
+
+                                val result = snapshotFlow {
+                                    mangaList.itemCount to mangaList.loadState.append
+                                }.first { (count, state) ->
+                                    count > previousCount ||
+                                        (state is LoadState.NotLoading && state.endOfPaginationReached) ||
+                                        state is LoadState.Error
+                                }
+
+                                val newAppendState = result.second
+                                if (newAppendState is LoadState.Error) break
+
+                                if (newAppendState is LoadState.NotLoading && newAppendState.endOfPaginationReached) {
+                                    val lastIndex = mangaList.itemCount - 1
+                                    if (lastIndex >= 0) {
+                                        gridState.animateScrollToItem(lastIndex)
+                                    }
+                                    break
+                                }
+
+                                if (mangaList.itemCount <= previousCount) break
+                            }
                         }
-                    }
-                },
-            ) {
-                Text(
-                    text = "↓",
-                    style = MaterialTheme.typography.headlineMedium,
-                )
+                    },
+                ) {
+                    Text(
+                        text = "↓",
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                }
             }
         }
     }
