@@ -1,4 +1,3 @@
-
 package eu.kanade.presentation.browse.components
 
 import androidx.compose.foundation.layout.Arrangement
@@ -83,12 +82,12 @@ fun BrowseSourceList(
             }
 
             item {
-    if (
-        mangaList.loadState.refresh is LoadState.Loading ||
-        mangaList.loadState.append is LoadState.Loading
-    ) {
-        BrowseSourceLoadingItem()
-    }
+                if (
+                    mangaList.loadState.refresh is LoadState.Loading ||
+                    mangaList.loadState.append is LoadState.Loading
+                ) {
+                    BrowseSourceLoadingItem()
+                }
             }
         }
 
@@ -125,7 +124,10 @@ fun BrowseSourceList(
                                 listState.animateScrollToItem(previousCount)
 
                                 val appendState = mangaList.loadState.append
-                                if (appendState is LoadState.NotLoading && appendState.endOfPaginationReached) {
+                                if (
+                                    appendState is LoadState.NotLoading &&
+                                    appendState.endOfPaginationReached
+                                ) {
                                     break
                                 }
                                 if (appendState is LoadState.Error) break
@@ -141,7 +143,10 @@ fun BrowseSourceList(
                                 val newAppendState = result.second
                                 if (newAppendState is LoadState.Error) break
 
-                                if (newAppendState is LoadState.NotLoading && newAppendState.endOfPaginationReached) {
+                                if (
+                                    newAppendState is LoadState.NotLoading &&
+                                    newAppendState.endOfPaginationReached
+                                ) {
                                     val lastIndex = mangaList.itemCount
                                     if (lastIndex > 0) {
                                         listState.animateScrollToItem(lastIndex)
