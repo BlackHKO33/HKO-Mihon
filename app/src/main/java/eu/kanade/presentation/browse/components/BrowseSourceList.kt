@@ -1,16 +1,31 @@
 package eu.kanade.presentation.browse.components
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import eu.kanade.presentation.library.components.CommonMangaItemDefaults
 import eu.kanade.presentation.library.components.MangaListItem
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.manga.model.MangaCover
 import tachiyomi.presentation.core.util.plus
@@ -21,28 +36,126 @@ fun BrowseSourceList(
     contentPadding: PaddingValues,
     onMangaClick: (Manga) -> Unit,
     onMangaLongClick: (Manga) -> Unit,
+    isSelectionMode: Boolean = false,
+    selectedMangaIds: Set<Long> = emptySet(),
+    onMangaSelectionToggle: (Manga) -> Unit = {},
 ) {
-    LazyColumn(
-        contentPadding = contentPadding + PaddingValues(vertical = 8.dp),
-    ) {
-        item {
-            if (mangaList.loadState.prepend is LoadState.Loading) {
-                BrowseSourceLoadingItem()
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    val showScrollToStart by remember {
+        derivedStateOf { listState.canScrollBackward }
+    }
+    val showScrollToEnd by remember {
+        derivedStateOf { listState.canScrollForward }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            contentPadding = contentPadding + PaddingValues(vertical = 8.dp),
+        ) {
+            item {
+                if (mangaList.loadState.prepend is LoadState.Loading) {
+                    BrowseSourceLoadingItem()
+                }
+            }
+
+            items(count = mangaList.itemCount) { index ->
+                val manga by mangaList[index]?.collectAsState() ?: return@items
+                BrowseSourceListItem(
+                    manga = manga,
+                    isSelected = manga.id in selectedMangaIds,
+                    onClick = {
+                        if (isSelectionMode) {
+                            onMangaSelectionToggle(manga)
+                        } else {
+                            onMangaClick(manga)
+                        }
+                    },
+                    onLongClick = {
+                        if (!isSelectionMode) onMangaLongClick(manga)
+                    },
+                )
+            }
+
+            item {
+                if (
+                    mangaList.loadState.refresh is LoadState.Loading ||
+                    mangaList.loadState.append is LoadState.Loading
+                ) {
+                    BrowseSourceLoadingItem()
+                }
             }
         }
 
-        items(count = mangaList.itemCount) { index ->
-            val manga by mangaList[index]?.collectAsState() ?: return@items
-            BrowseSourceListItem(
-                manga = manga,
-                onClick = { onMangaClick(manga) },
-                onLongClick = { onMangaLongClick(manga) },
-            )
-        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (showScrollToStart) {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            listState.animateScrollToItem(0)
+                        }
+                    },
+                ) {
+                    BrowseSourceScrollIcon(pointUp = true)
+                }
+            }
 
-        item {
-            if (mangaList.loadState.refresh is LoadState.Loading || mangaList.loadState.append is LoadState.Loading) {
-                BrowseSourceLoadingItem()
+            if (showScrollToEnd) {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            while (true) {
+                                val previousCount = mangaList.itemCount
+                                if (previousCount == 0) break
+
+                                // The first LazyColumn item is the loading header.
+                                listState.animateScrollToItem(previousCount)
+
+                                val appendState = mangaList.loadState.append
+                                if (
+                                    appendState is LoadState.NotLoading &&
+                                    appendState.endOfPaginationReached
+                                ) {
+                                    break
+                                }
+                                if (appendState is LoadState.Error) break
+
+                                val result = snapshotFlow {
+                                    mangaList.itemCount to mangaList.loadState.append
+                                }.first { (count, state) ->
+                                    count > previousCount ||
+                                        (state is LoadState.NotLoading && state.endOfPaginationReached) ||
+                                        state is LoadState.Error
+                                }
+
+                                val newAppendState = result.second
+                                if (newAppendState is LoadState.Error) break
+
+                                if (
+                                    newAppendState is LoadState.NotLoading &&
+                                    newAppendState.endOfPaginationReached
+                                ) {
+                                    val lastIndex = mangaList.itemCount
+                                    if (lastIndex > 0) {
+                                        listState.animateScrollToItem(lastIndex)
+                                    }
+                                    break
+                                }
+
+                                if (mangaList.itemCount <= previousCount) break
+                            }
+                        }
+                    },
+                ) {
+                    BrowseSourceScrollIcon(pointUp = false)
+                }
             }
         }
     }
@@ -53,6 +166,7 @@ private fun BrowseSourceListItem(
     manga: Manga,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = onClick,
+    isSelected: Boolean = false,
 ) {
     MangaListItem(
         title = manga.title,
@@ -67,6 +181,7 @@ private fun BrowseSourceListItem(
         badge = {
             InLibraryBadge(enabled = manga.favorite)
         },
+        isSelected = isSelected,
         onLongClick = onLongClick,
         onClick = onClick,
     )

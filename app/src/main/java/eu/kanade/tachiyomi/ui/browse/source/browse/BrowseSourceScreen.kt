@@ -108,6 +108,7 @@ data class BrowseSourceScreen(
         val haptic = LocalHapticFeedback.current
         val uriHandler = LocalUriHandler.current
         val snackbarHostState = remember { SnackbarHostState() }
+        val mangaList = viewModel.mangaPagerFlowFlow.collectAsLazyPagingItems()
 
         val onHelpClick = { uriHandler.openUri(LocalSource.HELP_URL) }
         val onWebViewClick = f@{
@@ -143,6 +144,15 @@ data class BrowseSourceScreen(
                         onHelpClick = onHelpClick,
                         onSettingsClick = { navigator.push(SourcePreferencesScreen(sourceId)) },
                         onSearch = viewModel::search,
+                        isSelectionMode = state.isSelectionMode,
+                        selectedCount = state.selectedManga.size,
+                        onStartSelection = viewModel::startSelection,
+                        onCancelSelection = viewModel::cancelSelection,
+                        onSelectAll = {
+                            viewModel.selectAllLoadedManga(
+                                mangaList.itemSnapshotList.items.map { it.value },
+                            )
+                        },
                     )
 
                     Row(
@@ -206,6 +216,15 @@ data class BrowseSourceScreen(
                                 },
                             )
                         }
+                        if (state.isSelectionMode && state.selectedManga.isNotEmpty()) {
+                            FilterChip(
+                                selected = false,
+                                onClick = viewModel::openSelectedMangaCategoryDialog,
+                                label = {
+                                    Text(text = "Agregar seleccionados (${state.selectedManga.size})")
+                                },
+                            )
+                        }
                     }
 
                     HorizontalDivider()
@@ -215,7 +234,7 @@ data class BrowseSourceScreen(
         ) { paddingValues ->
             BrowseSourceContent(
                 source = source,
-                mangaList = viewModel.mangaPagerFlowFlow.collectAsLazyPagingItems(),
+                mangaList = mangaList,
                 columns = viewModel.getColumnsPreference(LocalConfiguration.current.orientation),
                 displayMode = viewModel.displayMode,
                 snackbarHostState = snackbarHostState,
@@ -223,18 +242,31 @@ data class BrowseSourceScreen(
                 onWebViewClick = onWebViewClick,
                 onHelpClick = { uriHandler.openUri(Constants.URL_HELP) },
                 onLocalSourceHelpClick = onHelpClick,
-                onMangaClick = { navigator.push((MangaScreen(it.id, true))) },
+                isSelectionMode = state.isSelectionMode,
+                selectedMangaIds = state.selectedManga.map { it.id }.toSet(),
+                onMangaSelectionToggle = viewModel::toggleMangaSelection,
+                onMangaClick = { manga ->
+                    if (state.isSelectionMode) {
+                        viewModel.toggleMangaSelection(manga)
+                    } else {
+                        navigator.push(MangaScreen(manga.id, true))
+                    }
+                },
                 onMangaLongClick = { manga ->
-                    scope.launch(Dispatchers.IO) {
-                        val duplicates = viewModel.getDuplicateLibraryManga(manga)
-                        when {
-                            manga.favorite -> viewModel.setDialog(BrowseSourceViewModel.Dialog.RemoveManga(manga))
-                            duplicates.isNotEmpty() -> viewModel.setDialog(
-                                BrowseSourceViewModel.Dialog.AddDuplicateManga(manga, duplicates),
-                            )
-                            else -> viewModel.addFavorite(manga)
+                    if (state.isSelectionMode) {
+                        viewModel.toggleMangaSelection(manga)
+                    } else {
+                        scope.launch(Dispatchers.IO) {
+                            val duplicates = viewModel.getDuplicateLibraryManga(manga)
+                            when {
+                                manga.favorite -> viewModel.setDialog(BrowseSourceViewModel.Dialog.RemoveManga(manga))
+                                duplicates.isNotEmpty() -> viewModel.setDialog(
+                                    BrowseSourceViewModel.Dialog.AddDuplicateManga(manga, duplicates),
+                                )
+                                else -> viewModel.addFavorite(manga)
+                            }
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         }
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     }
                 },
             )
@@ -287,6 +319,16 @@ data class BrowseSourceScreen(
                     onConfirm = { include, _ ->
                         viewModel.changeMangaFavorite(dialog.manga)
                         viewModel.moveMangaToCategories(dialog.manga, include)
+                    },
+                )
+            }
+            is BrowseSourceViewModel.Dialog.ChangeSelectedMangaCategories -> {
+                ChangeCategoryDialog(
+                    initialSelection = dialog.initialSelection,
+                    onDismissRequest = onDismissRequest,
+                    onEditCategories = { navigator.push(CategoryScreen()) },
+                    onConfirm = { include, exclude ->
+                        viewModel.addSelectedMangaToLibrary(include, exclude)
                     },
                 )
             }
