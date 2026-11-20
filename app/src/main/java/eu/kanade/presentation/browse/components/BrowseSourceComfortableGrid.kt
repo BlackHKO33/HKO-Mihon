@@ -1,4 +1,3 @@
-
 package eu.kanade.presentation.browse.components
 
 import androidx.compose.foundation.layout.Arrangement
@@ -11,11 +10,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -90,7 +87,10 @@ fun BrowseSourceComfortableGrid(
                 )
             }
 
-            if (mangaList.loadState.refresh is LoadState.Loading || mangaList.loadState.append is LoadState.Loading) {
+            if (
+                mangaList.loadState.refresh is LoadState.Loading ||
+                mangaList.loadState.append is LoadState.Loading
+            ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     BrowseSourceLoadingItem()
                 }
@@ -111,9 +111,9 @@ fun BrowseSourceComfortableGrid(
                         }
                     },
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowUp,
-                        contentDescription = "Ir al principio",
+                    Text(
+                        text = "↑",
+                        style = MaterialTheme.typography.headlineMedium,
                     )
                 }
             }
@@ -129,7 +129,10 @@ fun BrowseSourceComfortableGrid(
                                 gridState.animateScrollToItem(previousCount - 1)
 
                                 val appendState = mangaList.loadState.append
-                                if (appendState is LoadState.NotLoading && appendState.endOfPaginationReached) {
+                                if (
+                                    appendState is LoadState.NotLoading &&
+                                    appendState.endOfPaginationReached
+                                ) {
                                     break
                                 }
                                 if (appendState is LoadState.Error) break
@@ -145,7 +148,10 @@ fun BrowseSourceComfortableGrid(
                                 val newAppendState = result.second
                                 if (newAppendState is LoadState.Error) break
 
-                                if (newAppendState is LoadState.NotLoading && newAppendState.endOfPaginationReached) {
+                                if (
+                                    newAppendState is LoadState.NotLoading &&
+                                    newAppendState.endOfPaginationReached
+                                ) {
                                     val lastIndex = mangaList.itemCount - 1
                                     if (lastIndex >= 0) {
                                         gridState.animateScrollToItem(lastIndex)
@@ -158,9 +164,9 @@ fun BrowseSourceComfortableGrid(
                         }
                     },
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowDown,
-                        contentDescription = "Ir al final",
+                    Text(
+                        text = "↓",
+                        style = MaterialTheme.typography.headlineMedium,
                     )
                 }
             }
