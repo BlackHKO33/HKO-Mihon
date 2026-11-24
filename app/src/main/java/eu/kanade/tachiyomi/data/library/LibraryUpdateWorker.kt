@@ -182,7 +182,11 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
         }
 
         val rule34InCategory = listToUpdate.count { sourceManager.getOrStub(it.manga.source).name == "Rule34" }
-        logcat { "Rule34 diagnostics: categoryId=$categoryId library=${libraryManga.size} categoryItems=${listToUpdate.size} rule34InCategory=$rule34InCategory" }
+        logcat {
+            "Rule34 diagnostics: categoryId=$categoryId " +
+                "library=${libraryManga.size} categoryItems=${listToUpdate.size} " +
+                "rule34InCategory=$rule34InCategory"
+        }
 
         val restrictions = libraryPreferences.autoUpdateMangaRestrictions.get()
         val skippedUpdates = mutableListOf<Pair<Manga, String?>>()
@@ -233,7 +237,10 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
             .sortedBy { it.manga.title }
 
         val rule34Queued = mangaToUpdate.count { sourceManager.getOrStub(it.manga.source).name == "Rule34" }
-        logcat { "Rule34 diagnostics: queuedTotal=${mangaToUpdate.size} rule34Queued=$rule34Queued" }
+        logcat {
+            "Rule34 diagnostics: queuedTotal=${mangaToUpdate.size} " +
+                "rule34Queued=$rule34Queued"
+        }
 
         notifier.showQueueSizeWarningNotificationIfNeeded(mangaToUpdate)
 
@@ -278,7 +285,10 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                                 if (sourceManager.getOrStub(manga.source).name == "Rule34") {
                                     val count = rule34Started.incrementAndFetch()
                                     if (count <= 10) {
-                                        logcat { "Rule34 diagnostics: starting item#$count id=${manga.id} title=${manga.title} url=${manga.url}" }
+                                        logcat {
+                                            "Rule34 diagnostics: starting item#$count " +
+                                                "id=${manga.id} title=${manga.title} url=${manga.url}"
+                                        }
                                     }
                                 }
                                 ensureActive()
@@ -297,7 +307,10 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                                         val newChapters = updateManga(manga, fetchWindow)
                                             .sortedByDescending { it.sourceOrder }
                                         if (sourceManager.getOrStub(manga.source).name == "Rule34") {
-                                            logcat { "Rule34 diagnostics: finished id=${manga.id} returnedChapters=${newChapters.size}" }
+                                            logcat {
+                                                "Rule34 diagnostics: finished id=${manga.id} " +
+                                                    "returnedChapters=${newChapters.size}"
+                                            }
                                         }
 
                                         if (newChapters.isNotEmpty()) {
@@ -328,7 +341,10 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                                             else -> e.message
                                         }
                                         if (sourceManager.getOrStub(manga.source).name == "Rule34") {
-                                            logcat(LogPriority.ERROR) { "Rule34 diagnostics: failed id=${manga.id} error=${e::class.simpleName}: ${e.message}" }
+                                            logcat(LogPriority.ERROR) {
+                                                "Rule34 diagnostics: failed id=${manga.id} " +
+                                                    "error=${e::class.simpleName}: ${e.message}"
+                                            }
                                         }
                                         failedUpdates.add(manga to errorMessage)
                                     }
