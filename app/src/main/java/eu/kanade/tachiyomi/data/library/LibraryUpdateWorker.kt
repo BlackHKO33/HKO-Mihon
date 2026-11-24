@@ -192,7 +192,9 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
         mangaToUpdate = listToUpdate
             .filter {
                 when {
-                    it.manga.updateStrategy == UpdateStrategy.ONLY_FETCH_ONCE && it.totalChapters > 0L -> {
+                    it.manga.updateStrategy == UpdateStrategy.ONLY_FETCH_ONCE &&
+                        it.totalChapters > 0L &&
+                        sourceManager.getOrStub(it.manga.source).name != "Rule34" -> {
                         skippedUpdates.add(
                             it.manga to context.stringResource(MR.strings.skipped_reason_not_always_update),
                         )
