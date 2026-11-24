@@ -181,6 +181,9 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
             }
         }
 
+        val rule34InCategory = listToUpdate.count { sourceManager.getOrStub(it.manga.source).name == "Rule34" }
+        logcat { "Rule34 diagnostics: categoryId=$categoryId library=${libraryManga.size} categoryItems=${listToUpdate.size} rule34InCategory=$rule34InCategory" }
+
         val restrictions = libraryPreferences.autoUpdateMangaRestrictions.get()
         val skippedUpdates = mutableListOf<Pair<Manga, String?>>()
         val timeZone = TimeZone.currentSystemDefault()
@@ -229,6 +232,9 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
             }
             .sortedBy { it.manga.title }
 
+        val rule34Queued = mangaToUpdate.count { sourceManager.getOrStub(it.manga.source).name == "Rule34" }
+        logcat { "Rule34 diagnostics: queuedTotal=${mangaToUpdate.size} rule34Queued=$rule34Queued" }
+
         notifier.showQueueSizeWarningNotificationIfNeeded(mangaToUpdate)
 
         if (skippedUpdates.isNotEmpty()) {
@@ -257,6 +263,7 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
         val newUpdates = CopyOnWriteArrayList<Pair<Manga, Array<Chapter>>>()
         val failedUpdates = CopyOnWriteArrayList<Pair<Manga, String?>>()
         val hasDownloads = AtomicBoolean(false)
+        val rule34Started = AtomicInt(0)
         val timeZone = TimeZone.currentSystemDefault()
         val fetchWindow = fetchInterval.getWindow(Clock.System.now().toLocalDateTime(timeZone).date, timeZone)
 
@@ -268,6 +275,12 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                         semaphore.withPermit {
                             mangaInSource.forEach { libraryManga ->
                                 val manga = libraryManga.manga
+                                if (sourceManager.getOrStub(manga.source).name == "Rule34") {
+                                    val count = rule34Started.incrementAndFetch()
+                                    if (count <= 10) {
+                                        logcat { "Rule34 diagnostics: starting item#$count id=${manga.id} title=${manga.title} url=${manga.url}" }
+                                    }
+                                }
                                 ensureActive()
 
                                 // Don't continue to update if manga is not in library
@@ -283,6 +296,9 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                                     try {
                                         val newChapters = updateManga(manga, fetchWindow)
                                             .sortedByDescending { it.sourceOrder }
+                                        if (sourceManager.getOrStub(manga.source).name == "Rule34") {
+                                            logcat { "Rule34 diagnostics: finished id=${manga.id} returnedChapters=${newChapters.size}" }
+                                        }
 
                                         if (newChapters.isNotEmpty()) {
                                             val chaptersToDownload = filterChaptersForDownload.await(manga, newChapters)
@@ -310,6 +326,9 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                                                 MR.strings.loader_not_implemented_error,
                                             )
                                             else -> e.message
+                                        }
+                                        if (sourceManager.getOrStub(manga.source).name == "Rule34") {
+                                            logcat(LogPriority.ERROR) { "Rule34 diagnostics: failed id=${manga.id} error=${e::class.simpleName}: ${e.message}" }
                                         }
                                         failedUpdates.add(manga to errorMessage)
                                     }
