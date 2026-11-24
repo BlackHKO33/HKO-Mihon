@@ -12,6 +12,7 @@ on:
   push:
     branches:
       - main
+      - hko-seleccion-multiple
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -56,7 +57,7 @@ jobs:
 
       - name: Upload test report
         if: steps.unit_tests.outcome == 'failure'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@cf430e030cd5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-report-${{ github.sha }}
           path: app/build/reports/tests/testDebugUnitTest
