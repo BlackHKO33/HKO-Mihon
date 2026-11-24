@@ -182,7 +182,7 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
         }
 
         val rule34InCategory = listToUpdate.count { sourceManager.getOrStub(it.manga.source).name == "Rule34" }
-        logcat {
+        logcat(LogPriority.INFO) {
             "Rule34 diagnostics: categoryId=$categoryId " +
                 "library=${libraryManga.size} categoryItems=${listToUpdate.size} " +
                 "rule34InCategory=$rule34InCategory"
@@ -237,7 +237,7 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
             .sortedBy { it.manga.title }
 
         val rule34Queued = mangaToUpdate.count { sourceManager.getOrStub(it.manga.source).name == "Rule34" }
-        logcat {
+        logcat(LogPriority.INFO) {
             "Rule34 diagnostics: queuedTotal=${mangaToUpdate.size} " +
                 "rule34Queued=$rule34Queued"
         }
@@ -285,7 +285,7 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                                 if (sourceManager.getOrStub(manga.source).name == "Rule34") {
                                     val count = rule34Started.incrementAndFetch()
                                     if (count <= 10) {
-                                        logcat {
+                                        logcat(LogPriority.INFO) {
                                             "Rule34 diagnostics: starting item#$count " +
                                                 "id=${manga.id} title=${manga.title} url=${manga.url}"
                                         }
@@ -307,7 +307,7 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                                         val newChapters = updateManga(manga, fetchWindow)
                                             .sortedByDescending { it.sourceOrder }
                                         if (sourceManager.getOrStub(manga.source).name == "Rule34") {
-                                            logcat {
+                                            logcat(LogPriority.INFO) {
                                                 "Rule34 diagnostics: finished id=${manga.id} " +
                                                     "returnedChapters=${newChapters.size}"
                                             }
