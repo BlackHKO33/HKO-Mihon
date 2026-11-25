@@ -213,7 +213,9 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                         false
                     }
 
-                    MANGA_HAS_UNREAD in restrictions && it.unreadCount != 0L -> {
+                    MANGA_HAS_UNREAD in restrictions &&
+                        it.unreadCount != 0L &&
+                        sourceManager.getOrStub(it.manga.source).name != "Rule34" -> {
                         skippedUpdates.add(it.manga to context.stringResource(MR.strings.skipped_reason_not_caught_up))
                         false
                     }
@@ -224,7 +226,8 @@ class LibraryUpdateWorker(private val context: Context, workerParams: WorkerPara
                     }
 
                     MANGA_OUTSIDE_RELEASE_PERIOD in restrictions &&
-                        it.manga.nextUpdate.let { next -> next != null && next > fetchWindowUpperBound } -> {
+                        it.manga.nextUpdate.let { next -> next != null && next > fetchWindowUpperBound } &&
+                        sourceManager.getOrStub(it.manga.source).name != "Rule34" -> {
                         skippedUpdates.add(
                             it.manga to context.stringResource(MR.strings.skipped_reason_not_in_release_period),
                         )
